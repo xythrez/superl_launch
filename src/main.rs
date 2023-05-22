@@ -8,6 +8,7 @@ use std::thread;
 use std::time;
 
 const KEYID_LSUPER: u32 = 130;
+const MOUSE_MASK_LSUPER: u32 = 64;
 
 fn usage(prog: &String) -> () {
     println!("usage: {prog} [cmd...]");
@@ -35,8 +36,24 @@ fn x11_check_lsuper() -> Option<bool> {
     match x11_open_display() {
         Some(display) => {
             loop {
+                let mut root_return: u64 = 0;
+                let mut child_return: u64 = 0;
+                let mut win_x: i32 = 0;
+                let mut win_y: i32 = 0;
+                let mut root_x: i32 = 0;
+                let mut root_y: i32 = 0;
+                let mut mask_return: u32 = 0;
                 let mut keymap: [i8; 32] = [0; 32];
                 unsafe {
+                    let win: u64 = x11::xlib::XDefaultRootWindow(display);
+                    x11::xlib::XQueryPointer(display, win,
+                                             &mut root_return,
+                                             &mut child_return,
+                                             &mut root_x,
+                                             &mut root_y,
+                                             &mut win_x,
+                                             &mut win_y,
+                                             &mut mask_return);
                     x11::xlib::XQueryKeymap(display, keymap.as_mut_ptr());
                 }
                 let (count, keyid, _) : (u32, u32, bool) = keymap.iter().fold(
@@ -49,9 +66,10 @@ fn x11_check_lsuper() -> Option<bool> {
                     x11_close_display(display);
                     return Some(true);
                 }
-                if count > 1 || keyid != KEYID_LSUPER {
-                    x11_close_display(display);
-                    return Some(false);
+                if count > 1 || keyid != KEYID_LSUPER
+                    || mask_return != MOUSE_MASK_LSUPER {
+                        x11_close_display(display);
+                        return Some(false);
                 }
                 thread::sleep(sleep_time);
             }
