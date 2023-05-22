@@ -4,6 +4,8 @@ extern crate x11;
 use std::env;
 use std::process;
 use std::ptr;
+use std::thread;
+use std::time;
 
 const KEYID_LSUPER: u32 = 130;
 
@@ -29,6 +31,7 @@ fn x11_close_display(display: *mut x11::xlib::Display) {
 }
 
 fn x11_check_lsuper() -> Option<bool> {
+    let sleep_time = time::Duration::from_millis(10);
     match x11_open_display() {
         Some(display) => {
             loop {
@@ -50,6 +53,7 @@ fn x11_check_lsuper() -> Option<bool> {
                     x11_close_display(display);
                     return Some(false);
                 }
+                thread::sleep(sleep_time);
             }
         },
         None => {
